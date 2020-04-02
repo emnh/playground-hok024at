@@ -169,11 +169,12 @@ public:
                         available.bits[2], available.bits[1],
                         ShiftBytesLeft(gridBits3),
                         ShiftBytesRight(gridBits0));
+                i++;
                 if (ret.done)
                 {
                     break;
                 };
-                i++;
+                
 
                 // Returning 0 and 3
                 const ExpandReturn ret2 =
@@ -182,11 +183,11 @@ public:
                         available.bits[0], available.bits[3],
                         ShiftBytesLeft(ret.out3or1),
                         ShiftBytesRight(ret.out0or2));
+                i++;
                 if (ret2.done)
                 {
                     break;
                 };
-                i++;
                 gridBits0 = ret2.out0or2;
                 gridBits1 = ret.out3or1;
                 gridBits2 = ret.out0or2;
