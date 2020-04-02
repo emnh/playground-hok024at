@@ -335,8 +335,8 @@ int main()
 #endif
 
     BitMapGrid islands;
-    for (unsigned int y = 0; y < height; y++) {
-        for (unsigned int x = 0; x < line.length(); x++)
+    for (unsigned int y = 0; y < H; y++) {
+        for (unsigned int x = 0; x < W; x++)
         {
             // Last row is always island
             islands.Set(x, 15);
