@@ -334,7 +334,20 @@ int main()
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
 
-    game();
+    BitMapGrid islands;
+    for (unsigned int y = 0; y < height; y++) {
+        for (unsigned int x = 0; x < line.length(); x++)
+        {
+            // Last row is always island
+            islands.Set(x, 15);
+        }
+        // Last column is always island
+        islands.Set(15, y);
+    }
+    const BitMapGrid available = islands.Invert();
+    test(available, 45000);
+
+    //game();
     return 0;
 }
 ```
