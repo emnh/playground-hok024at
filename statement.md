@@ -23,7 +23,7 @@ On tech.io it is much slower for some reason, a few hundred k is all you get it 
 
 One thing you should note that a small change to the code below is necessary if you start your BFS
 from a black cell rather than a white cell:
-replace the first "if (ret.done)" with "if (i > 0 && ret.done)".
+replace the first "if (ret.done)" with "if (i > 1 && ret.done)".
 Or you can altogether skip the first call as an optimization, based on starting cell.
 
 
@@ -137,11 +137,12 @@ public:
                         available.bits[2], available.bits[1],
                         ShiftBytesLeft(gridBits3),
                         ShiftBytesRight(gridBits0));
+                i++;
+                // if (i > 1 && ret.done)
                 if (ret.done)
                 {
                     break;
                 };
-                i++;
 
                 // Returning 0 and 3
                 const ExpandReturn ret2 =
@@ -150,11 +151,11 @@ public:
                         available.bits[0], available.bits[3],
                         ShiftBytesLeft(ret.out3or1),
                         ShiftBytesRight(ret.out0or2));
+                i++;
                 if (ret2.done)
                 {
                     break;
                 };
-                i++;
                 gridBits0 = ret2.out0or2;
                 gridBits1 = ret.out3or1;
                 gridBits2 = ret.out0or2;
