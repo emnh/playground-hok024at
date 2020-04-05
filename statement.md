@@ -21,15 +21,10 @@ For certain 2.4 GHz servers on CodinGame you can get between 1.5 and 2 million B
 For the 2.2 GHz server it's around 1.3-1.4 million.
 On tech.io it is much slower for some reason, a few hundred k is all you get it seems.
 
-The below has been fixed at expense of a tiny bit of performance.
-You no longer should have to worry about starting cell.
-~~
-One thing you should note that a small change to the code below is necessary if you start your BFS
-from a black cell rather than a white cell like (7,7):
-replace the first "if (ret.done)" with "if (i > 1 && ret.done)".
-Actually don't add to "i" in first step if no expansion is done.
-Or you can altogether skip the first call as an optimization, based on starting cell.
-~~
+You no longer should have to worry about whether starting cell is black or white.
+Code has been modified at expense of a tiny bit of performance.
+If you know whether your starting cell is black or white you can optimize the code
+to make the first expansion from black to white or white to black accordingly.
 
 
 ```C++ runnable
