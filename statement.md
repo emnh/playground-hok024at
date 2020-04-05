@@ -12,18 +12,19 @@ As we said the last row and column are unavailable, and also "islands" (in this 
 The optimization idea is to split the board into white and black cells by odd and even indices, like a chess board.
 In that way black cells only have white neighbours and white cells only have black neighbours.
 
-So the first 64 bit int contains cells where x is even and y is even, i.e white cells.
-The second 64 bit int contains cells where x is odd and y is even, i.e. black cells.
-The third 64 bit int contains cells where x is even and y is odd, i.e. white cells.
-The fourth 64 bit int contains cells where x is odd and y is odd, i.e. black cells.
+So the first 64 bit int (index 0) contains cells where x is even and y is even, i.e white cells.
+The second 64 bit int (index 1) contains cells where x is odd and y is even, i.e. black cells.
+The third 64 bit int (index 2) contains cells where x is even and y is odd, i.e. black cells.
+The fourth 64 bit int (index 3) contains cells where x is odd and y is odd, i.e. white cells.
 
 For certain 2.4 GHz servers on CodinGame you can get between 1.5 and 2 million BFSes per seconds.
 For the 2.2 GHz server it's around 1.3-1.4 million.
 On tech.io it is much slower for some reason, a few hundred k is all you get it seems.
 
 One thing you should note that a small change to the code below is necessary if you start your BFS
-from a white cell rather than a black cell:
+from a black cell rather than a white cell like (7,7):
 replace the first "if (ret.done)" with "if (i > 1 && ret.done)".
+Actually don't add to "i" in first step if no expansion is done.
 Or you can altogether skip the first call as an optimization, based on starting cell.
 
 
