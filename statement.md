@@ -21,11 +21,15 @@ For certain 2.4 GHz servers on CodinGame you can get between 1.5 and 2 million B
 For the 2.2 GHz server it's around 1.3-1.4 million.
 On tech.io it is much slower for some reason, a few hundred k is all you get it seems.
 
+The below has been fixed at expense of a tiny bit of performance.
+You no longer should have to worry about starting cell.
+~~
 One thing you should note that a small change to the code below is necessary if you start your BFS
 from a black cell rather than a white cell like (7,7):
 replace the first "if (ret.done)" with "if (i > 1 && ret.done)".
 Actually don't add to "i" in first step if no expansion is done.
 Or you can altogether skip the first call as an optimization, based on starting cell.
+~~
 
 
 ```C++ runnable
@@ -123,27 +127,24 @@ public:
         uint64_t gridBits1 = gridInput.bits[1];
         uint64_t gridBits2 = gridInput.bits[2];
         uint64_t gridBits3 = gridInput.bits[3];
-
-        // NOTE: Assumes that we start on white: (even, even) or (odd, odd) cell e.g. (7,7).
-    	// Swap order of (2,1) call with (0,3) call if otherwise.
-    	// Or skip ret.done check on first iteration first call (i == 0).
     	
         while (true)
         {
             {
                 // Returning 2 and 1
+                // NOTE: Can optimize to avoid the first call to ExpandPlusCommon if starting cell is black.
+                // As then the first expansion is from black to white, not white to black as assumed here.
                 const ExpandReturn ret =
                     ExpandPlusCommon(
                         gridBits2, gridBits3, gridBits0, gridBits1,
                         available.bits[2], available.bits[1],
                         ShiftBytesLeft(gridBits3),
                         ShiftBytesRight(gridBits0));
-                i++;
-                // if (i > 1 && ret.done)
-                if (ret.done)
+                if (i > 0 && ret.done)
                 {
                     break;
-                };
+                }
+                if (!ret.done) i++;
 
                 // Returning 0 and 3
                 const ExpandReturn ret2 =
@@ -152,18 +153,18 @@ public:
                         available.bits[0], available.bits[3],
                         ShiftBytesLeft(ret.out3or1),
                         ShiftBytesRight(ret.out0or2));
-                i++;
                 if (ret2.done)
                 {
                     break;
                 };
+                i++;
                 gridBits0 = ret2.out0or2;
                 gridBits1 = ret.out3or1;
                 gridBits2 = ret.out0or2;
                 gridBits3 = ret2.out3or1;
             }
 
-        	// Just duplicate of above: Manual loop unrolling.
+        	// Mostly just duplicate of above: Manual loop unrolling.
             {
                 const ExpandReturn ret =
                     ExpandPlusCommon(
@@ -171,11 +172,11 @@ public:
                         available.bits[2], available.bits[1],
                         ShiftBytesLeft(gridBits3),
                         ShiftBytesRight(gridBits0));
-                i++;
                 if (ret.done)
                 {
                     break;
                 };
+                i++;
                 
 
                 // Returning 0 and 3
@@ -185,11 +186,11 @@ public:
                         available.bits[0], available.bits[3],
                         ShiftBytesLeft(ret.out3or1),
                         ShiftBytesRight(ret.out0or2));
-                i++;
                 if (ret2.done)
                 {
                     break;
                 };
+                i++;
                 gridBits0 = ret2.out0or2;
                 gridBits1 = ret.out3or1;
                 gridBits2 = ret.out0or2;
