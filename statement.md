@@ -44,6 +44,7 @@ using myClock = std::chrono::high_resolution_clock;
 const int W = 15;
 const int H = 15;
 const int WP = W + 1;
+const int BitsPerRow = WP / 2 + 0;
 const int B = 4;
 
 struct ExpandReturn
@@ -55,9 +56,9 @@ struct ExpandReturn
 
 class BitMapGrid
 {
-public:    
+public:
     uint64_t bits[B] = { 0, 0, 0, 0 };
-    
+
     BitMapGrid Invert()
     {
         BitMapGrid ret;
@@ -67,7 +68,7 @@ public:
 	    }
         return ret;
     }
-	
+
     static void GetIndex(
         unsigned int x,
         unsigned int y,
@@ -80,18 +81,57 @@ public:
         // x odd, y odd: 3: white
         // 01
         // 23
+
+        // Every 8th bit supposed to be unused
+        // (except for "available" grid),
+        // to guard shifts between rows and columns.
+        // So map last row onto those.
+        /*
+        if (y == 15) {
+          y = min(14u, x + 2);
+          x = -2;
+          //intIndex = (x % 2) + ((y % 2) * 2);
+          //bitIndex = ((y / 2) * BitsPerRow) + (x / 2);
+          //return;
+        }*/
+
         intIndex = (x % 2) + ((y % 2) * 2);
-        bitIndex = ((y / 2) * WP / 2) + (x / 2);
+        bitIndex = ((y / 2) * BitsPerRow) + (x / 2);
+        if (bitIndex >= 64) {
+          int k = 0;
+          cerr << "INVALID BITINDEX FOR XY: " << x << "," << y << endl;
+        }
+    }
+
+    BitMapGrid Intersection(const BitMapGrid& other) const {
+      BitMapGrid ret;
+      for (int i = 0; i < B; i++) {
+        ret.bits[i] = this->bits[i] & other.bits[i];
+      }
+      return ret;
+    }
+
+    BitMapGrid GetAvailable() {
+      BitMapGrid full;
+      // Make sure all used bits are set and unused bits are unset
+      for (int y = 0; y < H; y++) {
+          for (unsigned int x = 0; x < W; x++) {
+            full.Set(x, y);
+          }
+      }
+      return Intersection(full).Invert();
     }
 
     static uint64_t ShiftBytesLeft(const uint64_t& a)
     {
         return (a & 0x7F7F7F7F7F7F7F7Full) << 1;
+        //return a << 1;
     }
 
     static uint64_t ShiftBytesRight(const uint64_t& a)
     {
         return (a & 0xFEFEFEFEFEFEFEFEull) >> 1;
+        //return a >> 1;
     }
 
     static ExpandReturn ExpandPlusCommon(
@@ -109,8 +149,10 @@ public:
         const uint64_t grid3Old = grid3;
 
         const uint64_t common = grid1 | grid2;
-        const uint64_t a = (grid0 | common | grid0Or | grid2 << 8) & available0;
-        const uint64_t b = (grid3 | common | grid3Or | grid1 >> 8) & available3;
+        //const uint64_t a = (grid0 | common | grid0Or | grid2 << BitsPerRow) & available0;
+        //const uint64_t b = (grid3 | common | grid3Or | grid1 >> BitsPerRow) & available3;
+        const uint64_t a = (grid0 | common | grid0Or) & available0;
+        const uint64_t b = (grid3 | common | grid3Or) & available3;
 
         return { a, b, a == grid0Old && b == grid3Old };
     };
@@ -122,7 +164,17 @@ public:
         uint64_t gridBits1 = gridInput.bits[1];
         uint64_t gridBits2 = gridInput.bits[2];
         uint64_t gridBits3 = gridInput.bits[3];
-    	
+
+        const auto& PP = [&](string header) {
+          BitMapGrid grid;
+          grid.bits[0] = gridBits0;
+          grid.bits[1] = gridBits1;
+          grid.bits[2] = gridBits2;
+          grid.bits[3] = gridBits3;
+          cerr << header << endl;
+          grid.Print();
+        };
+
         while (true)
         {
             {
@@ -133,8 +185,11 @@ public:
                     ExpandPlusCommon(
                         gridBits2, gridBits3, gridBits0, gridBits1,
                         available.bits[2], available.bits[1],
-                        ShiftBytesLeft(gridBits3),
-                        ShiftBytesRight(gridBits0));
+                        ShiftBytesLeft(gridBits3) | (gridBits0 >> BitsPerRow),
+                        ShiftBytesRight(gridBits0) | (gridBits3 << BitsPerRow));
+                gridBits1 = ret.out3or1;
+                gridBits2 = ret.out0or2;
+                //PP("RET21");
                 if (i > 0 && ret.done)
                 {
                     break;
@@ -146,50 +201,51 @@ public:
                     ExpandPlusCommon(
                         gridBits0, ret.out3or1, ret.out0or2, gridBits3,
                         available.bits[0], available.bits[3],
-                        ShiftBytesLeft(ret.out3or1),
-                        ShiftBytesRight(ret.out0or2));
+                        ShiftBytesLeft(ret.out3or1) | (ret.out0or2 << BitsPerRow),
+                        ShiftBytesRight(ret.out0or2) | (ret.out3or1 >> BitsPerRow));
+                gridBits0 = ret2.out0or2;
+                gridBits3 = ret2.out3or1;
+                //PP("RET30");
                 if (ret2.done)
                 {
                     break;
                 };
                 i++;
-                gridBits0 = ret2.out0or2;
-                gridBits1 = ret.out3or1;
-                gridBits2 = ret.out0or2;
-                gridBits3 = ret2.out3or1;
             }
 
-        	// Mostly just duplicate of above: Manual loop unrolling.
+            // Mostly just duplicate of above: Manual loop unrolling.
             {
                 const ExpandReturn ret =
                     ExpandPlusCommon(
                         gridBits2, gridBits3, gridBits0, gridBits1,
                         available.bits[2], available.bits[1],
-                        ShiftBytesLeft(gridBits3),
-                        ShiftBytesRight(gridBits0));
+                        ShiftBytesLeft(gridBits3) | (gridBits0 >> BitsPerRow),
+                        ShiftBytesRight(gridBits0) | (gridBits3 << BitsPerRow));
+                gridBits1 = ret.out3or1;
+                gridBits2 = ret.out0or2;
+                //PP("RET21");
                 if (ret.done)
                 {
                     break;
                 };
                 i++;
-                
+
 
                 // Returning 0 and 3
                 const ExpandReturn ret2 =
                     ExpandPlusCommon(
                         gridBits0, ret.out3or1, ret.out0or2, gridBits3,
                         available.bits[0], available.bits[3],
-                        ShiftBytesLeft(ret.out3or1),
-                        ShiftBytesRight(ret.out0or2));
+                        ShiftBytesLeft(ret.out3or1) | (ret.out0or2 << BitsPerRow),
+                        ShiftBytesRight(ret.out0or2) | (ret.out3or1 >> BitsPerRow));
+                gridBits0 = ret2.out0or2;
+                gridBits3 = ret2.out3or1;
+                //PP("RET30");
                 if (ret2.done)
                 {
                     break;
                 };
                 i++;
-                gridBits0 = ret2.out0or2;
-                gridBits1 = ret.out3or1;
-                gridBits2 = ret.out0or2;
-                gridBits3 = ret2.out3or1;
             }
         }
 
@@ -225,6 +281,10 @@ public:
         bits[intIndex] &= ~(1ULL << bitIndex);
     }
 
+    static string pad(int x) {
+      return x < 10 ? "0" : "";
+    }
+
     void Print() const
     {
         unsigned char out[(W + 1) * H + 1];
@@ -235,9 +295,15 @@ public:
                 unsigned int bitIndex;
                 unsigned int intIndex;
                 GetIndex(x, y, bitIndex, intIndex);
+                /*
+                cerr << pad(x) << x << "," << pad(y) << y << ": " <<
+                  pad(intIndex) << intIndex << "," <<
+                  pad(bitIndex) << bitIndex << " ";
+                  */
                 out[x + y * (W + 1)] =
                     Get(x, y) ? '0' + intIndex : '.';
             }
+            //cerr << endl;
             out[(y + 1) * (W + 1) - 1] = '\n';
         }
         out[(W + 1) * H] = 0;
@@ -289,14 +355,10 @@ void game()
             {
                 islands.Set(x, y);
             }
-            // Last row is always island
-            islands.Set(x, 15);
         }
-        // Last column is always island
-        islands.Set(15, y);
     }
-    const BitMapGrid available = islands.Invert();
-	
+    const BitMapGrid available = islands.GetAvailable();
+
     test(available, 950000);
 
     cout << "7 7" << endl;
@@ -335,16 +397,25 @@ int main()
 #endif
 
     BitMapGrid islands;
-    for (unsigned int y = 0; y < H; y++) {
-        for (unsigned int x = 0; x < W; x++)
-        {
-            // Last row is always island
-            islands.Set(x, 15);
-        }
-        // Last column is always island
-        islands.Set(15, y);
+    for (int i = 1; i < 15; i++) {
+     // islands.Set(2, i);
     }
-    const BitMapGrid available = islands.Invert();
+    // 2x2
+    /*
+islands.Set(1, 1);
+islands.Set(1, 2);
+islands.Set(2, 1);
+islands.Set(2, 2);
+
+// close the corner
+islands.Set(2, 0);
+islands.Set(0, 2);
+islands.Print();
+*/
+
+    cerr << endl;
+
+    const BitMapGrid available = islands.GetAvailable();
     test(available, 45000);
 
     //game();
