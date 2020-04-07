@@ -6,6 +6,7 @@ Assignment to return value was too late (after break).
 There was a bit shift in incorrect direction.
 Initialization of available was incorrect (missing a few bits: 2 * 15 != 264 - 15 * 15 hehe).
 Performance suffered a bit with these corrections, but still getting around 1 million.
+After these corrections mlomb tested the code against his own BFS implementation and validated with 0 errors of 999901 test cases.
 
 We represent a 15x15 grid as 4 64 bit unsigned integers.
 The last column, 16th, and row, also 16th, should always be empty.
